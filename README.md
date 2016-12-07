@@ -35,10 +35,11 @@ The search-interface has been initialized w/ the following params:
 ```
  
  
- * Then, you search using one of the 3 exposed search methods with usage shown here:
+ * Then, you search using one of the 4 exposed search methods with usage shown here:
     * `packaged_json_object = BingSearcherInstance.search_2_packaged_json()`
     * `raw_json_dict = BingSearcherInstance.search_2_json()`
     * `raw_html_str = BingSearcherInstance.search_2_html()`
+    * `requests_module_response_obj = BingSearcherInstance.search_2_response_obj()`
 
 
  * And then we rinse and repeat!
