@@ -1,7 +1,7 @@
 bingapipy
 =========
 
-##It's pronounced bing-a-pip-ee.
+##It's pronounced binga-pip-ee.
 ####Say it a bunch of times. It's fun!
 
 
