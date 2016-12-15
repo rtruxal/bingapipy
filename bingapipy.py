@@ -5,6 +5,8 @@ from collections import OrderedDict
 from time import sleep
 
 
+
+__all__ = ['local_user_constants', 'BingSearch', 'decode_response_url']
 ###############################################
 ##                                           ##
 ##       User-defined dictionaries for       ##
@@ -18,8 +20,9 @@ class local_user_constants():
     ###############################################
     ## Enter default-header customizations here. ##
     ###############################################
-    HEADERS['User-Agent'] = "Mozilla/5.0 (Windows NT 6.2; Win64; x64; rv:16.0.1) Gecko/20121011 Firefox/16.0.1"
-    HEADERS['X-Search-ClientIP'] = gethostbyname(gethostname())
+    ##HEADERS['Ocp-Apim-Subscription-Key'] = None                                                               # <--('Ocp-Apim-Subscription-Key' SHOULD NOT BE SET HERE. YOU MUST PASS IT TO THE SEARCH-OBJECT-CONSTRUCTOR CLASS: BingSearch)
+    HEADERS['User-Agent'] = "Mozilla/5.0 (Windows NT 6.2; Win64; x64; rv:16.0.1) Gecko/20121011 Firefox/16.0.1" # <--(dummy User-Agent header for consistent response-format)
+    HEADERS['X-Search-ClientIP'] = gethostbyname(gethostname())                                                 # <--(these are methods from the 'socket' module which produce the host-machine's public IP)
     HEADERS['X-MSEdge-ClientID'] = None
     HEADERS['Accept'] = None
     HEADERS['Accept-Language'] = None
@@ -28,7 +31,7 @@ class local_user_constants():
     ###############################################
     ##     Enter query customizations here.      ##
     ###############################################
-    ## Web Params: ['query_plaintext'] = None HAS BEEN LEFT OUT ON PURPOSE. THAT DON'T GO HERE.
+    ##INCLUDED_PARAMS['q'] = None              # <--(BOTH THE 'Ocp-Apim-Subscription-Key' FROM 'HEADERS' AND THE 'q' FROM 'INCLUDED_PARAMS' MUST BE PASSED MANUALLY TO THE SEARCH-OBJECT-CONSTRUCTOR CLASS: BingSearch)
     INCLUDED_PARAMS['cc'] = None               # <--(See constants._COUNTRY_CODES below for available options)
     INCLUDED_PARAMS['count'] = "50"            # <--(Enter a number from 0-50. Must by type==str. EX: count of 5 should be "5")
     INCLUDED_PARAMS['freshness'] = None        # <--(Poss values are 'Day', 'Week', or 'Month')
@@ -46,7 +49,7 @@ class local_user_constants():
 ##      Primary API for SearchWebLite        ##
 ##                                           ##
 ###############################################
-class BingSearcher(object):
+class BingSearch(object):
 
     ###############################################
     ## Initialization functions and attr-setting ##
@@ -171,11 +174,42 @@ class BingSearcher(object):
         :return list of WebResult objects: parsed and prettied JSON results with easy data-access.
                 Returned as a LIST of WebResult objects with len == the # of links returned by Bing.
         """
-        if not self.total_estimated_matches and self.endpoint_type == 'web':
+
+        ##TODO: MAKE THIS NOT HACKY
+        if json_response['_type'] == 'News':
+            return [NewsResult(single_json_entry) for single_json_entry in json_response['value']]
+
+        elif 'webPages' not in json_response.keys():
+            try:
+                if bool(json_response['rankingResponse']) is False:
+                    if self._verbose:
+                        print('NO RESULTS RETURNED BY BING. RETURNING ORIGINAL JSON.')
+                    else: pass
+                    return json_response
+            except KeyError:
+                # print('unable to determine if empty, attempting WebResult extraction.')
+                pass
+            try:
+                link_list = json_response[self.params['responseFilter']]['value']
+                try:
+                    return [WebResult(single_json_entry) for single_json_entry in link_list]
+                except Exception:
+                    print('unrecognized response format.\n RETURNING LIST OF URLS, NOT WEBRESULT OBJECTS.')
+                    return [json_item['url'] for json_item in link_list]
+            except KeyError:
+                try:
+                    link_list = json_response['value']
+                    return [single_json_entry['url'] for single_json_entry in link_list]
+                except KeyError:
+                    raise EnvironmentError('something is wrong with using responsefilter to id the json.\n aka I"m a bad coder')
+
+        elif not self.total_estimated_matches and self.endpoint_type == 'web':
             print(('Bing says there are an estimated {} results matching your query'.format(json_response['webPages']['totalEstimatedMatches'])))
             self.total_estimated_matches = int(json_response['webPages']['totalEstimatedMatches'])
-        packaged_json = [WebResult(single_json_entry) for single_json_entry in json_response['webPages']['value']]
-        return packaged_json
+
+            packaged_json = [WebResult(single_json_entry) for single_json_entry in json_response['webPages']['value']]
+            return packaged_json
+        else: return None
 
     def _handle_429_error(self, url):
         timeout_cnt = 0
@@ -193,7 +227,6 @@ class BingSearcher(object):
             else:
                 raise IOError(local_static_constants._ERROR_CODES['429'])
         return r2
-
 
 
 ###############################################
@@ -236,6 +269,37 @@ class WebResult(object):
     def __repr__(self):
         return '{}'.format(self.display_url)
 
+
+class NewsResult(object):
+    def __init__(self, result):
+        try:
+            self.about_name = result.get('about')[0]['name']
+            self.about_readlink = result.get('about')[0]['readLink']
+        except TypeError:
+            self.about_name = None
+            self.about_readlink = None
+        try:
+            self.image_url = result.get('image')['thumbnail']['contentUrl']
+            self.image_width = result.get('image')['thumbnail']['width']
+            self.image_height = result.get('image')['thumbnail']['height']
+        except KeyError:
+            self.image_url = None
+            self.image_width = None
+            self.image_height = None
+        try:
+            self.provider_type = result.get('provider')[0]['_type']
+            self.provider_name = result.get('provider')[0]['name']
+        except Exception:
+            self.provider_type = None
+            self.provider_name = None
+        self.category = result.get('category')
+        self.name = result.get('name')
+        self.date_published = result.get('datePublished')
+        self.description = result.get('description')
+        self.url = result.get('url')
+
+    def __str__(self):
+        return 'NewsResult'
 ###############################################
 ##                                           ##
 ##          class-independent funcs          ##
@@ -246,7 +310,13 @@ def _clear_null_vals(dictionary):
     return OrderedDict((k, v) for k, v in dictionary.items() if v)
 
 
-
+def decode_response_url(bing_encoded_url):
+    import binascii
+    # yes it appears to be this easy.
+    new_url = bing_encoded_url[153:-15].lstrip('=')
+    new_new_url = new_url.replace('%3a', binascii.a2b_hex('3a'))
+    new_new_new_url = new_new_url.replace('%2f', binascii.a2b_hex('2f'))
+    return new_new_new_url
 
 def validate_request_response(response):
     """

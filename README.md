@@ -18,12 +18,12 @@ Usage
 =====
 
 ```py
->>> from bingapipy import BingSearcher
+>>> from bingapipy import BingSearch
 >>>
 >>> key = 'RAAAAAANDOMLETTERSANDNUMBERRRSS23486832'
 >>> query = '"Look! double quotes!"'
 >>> 
->>> BingSearcherInstance = BingSearcher(key, query)
+>>> BingSearchInstance = BingSearch(key, query)
 
 The search-interface has been initialized w/ the following params:
  
@@ -36,19 +36,19 @@ The search-interface has been initialized w/ the following params:
  
  
  * Then, you search using one of the 4 exposed search methods with usage shown here:
-    * `packaged_json_object = BingSearcherInstance.search_2_packaged_json()`
-    * `raw_json_dict = BingSearcherInstance.search_2_json()`
-    * `raw_html_str = BingSearcherInstance.search_2_html()`
-    * `requests_module_response_obj = BingSearcherInstance.search_2_response_obj()`
+    * `packaged_json_object = BingSearchInstance.search_2_packaged_json()`
+    * `raw_json_dict = BingSearchInstance.search_2_json()`
+    * `raw_html_str = BingSearchInstance.search_2_html()`
+    * `requests_module_response_obj = BingSearchInstance.search_2_response_obj()`
 
 
  * And then we rinse and repeat!
  ```py
->>> BingSearcherInstance.reset_query_string_and_paging('IP:"8.8.8.8"')
->>> new_packaged_json_object = BingSearcherInstance.search_2_packaged_json()
+>>> BingSearchInstance.reset_query_string_and_paging('IP:"8.8.8.8"')
+>>> new_packaged_json_object = BingSearchInstance.search_2_packaged_json()
 >>>
->>> BingSearcherInstance.reset_query_string_and_paging('Yet another plaintext query')
->>> new_NEW_packaged_json_object = BingSearcherInstance.search_2_packaged_json()
+>>> BingSearchInstance.reset_query_string_and_paging('Yet another plaintext query')
+>>> new_NEW_packaged_json_object = BingSearchInstance.search_2_packaged_json()
 ```
  
 paging support coming soon.
