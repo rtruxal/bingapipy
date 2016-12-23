@@ -2,7 +2,8 @@ bingapipy
 =========
 
 ##It's pronounced binga-pip-ee.
-####Say it a bunch of times. It's fun!
+###Say it a bunch of times. It's fun!
+####Efficiency has been totaly usurped by readabilityism. This gives me carte blanche to make the thing as clumsy as i thankyou.
 
 
 
@@ -24,6 +25,7 @@ Usage
 >>> query = '"Look! double quotes!"'
 >>> 
 >>> BingSearchInstance = BingSearch(key, query)
+
 
 The search-interface has been initialized w/ the following params:
  
