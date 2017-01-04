@@ -130,8 +130,6 @@ class BingSearch(object):
         # Handle error-codes and Warn about potential garbage results if query URL is too long.
         if len(response_object.url) > 1300:
             print('WARNING: URL too long at {} characters.\n Bing can silently truncate your query.\n Limit URLs to < 1,200 chars.').format(len(response_object.url))
-        # import pdb
-        # pdb.set_trace()
         response_validated = validate_request_response(response_object)
         if response_validated == '429':
             response_object = self._handle_429_error(url=response_object.url)
@@ -177,6 +175,7 @@ class BingSearch(object):
 
         ##TODO: MAKE THIS NOT HACKY
         if json_response['_type'] == 'News':
+
             return [NewsResult(single_json_entry) for single_json_entry in json_response['value']]
 
         elif 'webPages' not in json_response.keys():
@@ -275,14 +274,14 @@ class NewsResult(object):
         try:
             self.about_name = result.get('about')[0]['name']
             self.about_readlink = result.get('about')[0]['readLink']
-        except TypeError:
+        except Exception:
             self.about_name = None
             self.about_readlink = None
         try:
             self.image_url = result.get('image')['thumbnail']['contentUrl']
             self.image_width = result.get('image')['thumbnail']['width']
             self.image_height = result.get('image')['thumbnail']['height']
-        except KeyError:
+        except Exception:
             self.image_url = None
             self.image_width = None
             self.image_height = None
