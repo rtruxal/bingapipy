@@ -42,7 +42,8 @@ class local_user_constants():
     INCLUDED_PARAMS['setLang'] = None          # <--(See ISO 639-1, 2-letter language codes here: https://www.loc.gov/standards/iso639-2/php/code_list.php)
     INCLUDED_PARAMS['textDecorations'] = None  # <--(Case-insensitive boolean. '(t|T)rue', or '(f|F)alse')
     INCLUDED_PARAMS['textFormat'] = None       # <--(Poss values are 'Raw', and 'HTML.' Default is 'Raw' if left blank.)
-
+    # News Search Only!
+    INCLUDED_PARAMS['category'] = None         # <--(ONLY FOR NEWS SEARCH. See available categories by mkt)
 
 ###############################################
 ##                                           ##
@@ -73,7 +74,10 @@ class BingSearch(object):
     def _init_constructor_funcs(self):
         self.base_url = local_static_constants.API_ENDPOINTS[self.endpoint_type]
         # encode your query to be URL-rdy
-        self._encoded_q = urlencode(dict(q=self.query_plaintext))
+        if 'categories' not in self.endpoint_type:
+            self._encoded_q = urlencode(dict(q=self.query_plaintext))
+        else:
+            self._encoded_q = self._handle_categorical_query()
         # clean out them' dictionary attrs.
         self.headers = _clear_null_vals(self.headers)
         self.params = _clear_null_vals(self.params)
@@ -92,6 +96,19 @@ class BingSearch(object):
         if not bypass_setting_attrs:
             self.last_predicted_url = prediction
         return prediction
+
+    def _handle_categorical_query(self):
+        """Essentially just a validation method. categorical search must be used in conjunction w/ the mkt param"""
+        # Must specify mkt param to do categorical searches. Only two working are for GB and US.
+        assert self.params['mkt'] != None and self.params['mkt'][-2:].lower() in ('us', 'gb')
+        if self.params['mkt'][-2:].lower() == 'us' and self.query_plaintext in local_static_constants.NEWS_CATEGORIES_US:
+            pass
+        elif self.params['mkt'][-2:].lower() == 'gb' and self.query_plaintext in local_static_constants.NEWS_CATEGORIES_GB:
+            pass
+        else:
+            raise ValueError('mkt param and categorical query term do not match')
+        return 'category={}'.format(self.query_plaintext)
+
 
     def _inject_key_into_header(self, header_dictionary, override=False):
         OD_w_key_added = OrderedDict()
@@ -353,6 +370,7 @@ class local_static_constants():
         'videos_trending': 'https://api.cognitive.microsoft.com/bing/v5.0/videos/trending/search?',
         'videos_details': 'https://api.cognitive.microsoft.com/bing/v5.0/videos/details/search?',
         'news': 'https://api.cognitive.microsoft.com/bing/v5.0/news/search?',
+        'news_categories': 'https://api.cognitive.microsoft.com/bing/v5.0/news?',
         'news_trending': 'https://api.cognitive.microsoft.com/bing/v5.0/news/trendingtopics&'
     }
     _ERROR_CODES = {
@@ -364,3 +382,45 @@ class local_static_constants():
         '410': 'The request was made using HTTP. Only HTTPS is supported.(_BASE_ENDPOINT USES HTTPS. EITHER YOU CHANGED THAT OR YOU ARE NOT AT FAULT)',
         '429': 'The user exceeded their queries per second quota',
     }
+    NEWS_CATEGORIES_US = (
+        'Business',
+        'Entertainment',
+        'Entertainment_MovieAndTV',
+        'Entertainment_Music',
+        'Health',
+        'Politics',
+        'ScienceAndTechnology',
+        'Science',
+        'Technology',
+        'Sports',
+        'Sports_Golf',
+        'Sports_MLB',
+        'Sports_NBA',
+        'Sports_NFL',
+        'Sports_NHL',
+        'Sports_Soccer',
+        'Sports_Tennis',
+        'Sports_CFB',
+        'Sports_CBB',
+        'US',
+        'US_Northeast',
+        'US_South',
+        'US_Midwest',
+        'US_West',
+        'World',
+        'World_Africa',
+        'World_Americas',
+        'World_Asia',
+        'World_Europe',
+        'World_MiddleEast',
+    )
+    NEWS_CATEGORIES_GB = (
+        'Business',
+        'Entertainment',
+        'Health',
+        'Politics',
+        'ScienceAndTechnology',
+        'Sports',
+        'UK',
+        'World',
+    )
