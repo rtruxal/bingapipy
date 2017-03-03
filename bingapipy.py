@@ -5,7 +5,7 @@ from time import sleep
 import requests
 from requests.models import urlencode
 
-from .errors_and_validations import JsonParsingError
+from .errors_and_validations import JsonParsingError, QueryChecker
 
 
 ###############################################
@@ -52,11 +52,15 @@ class default_user_params():
 ##                                           ##
 ###############################################
 class BingSearch(object):
+    """
+     Don't be intimidated because I write spaghetti code.
+     Read the docstrings. They're attached to the most important methods.
+     """
 
     ###############################################
     ## Initialization functions and attr-setting ##
     ###############################################
-    def __init__(self, api_key=None, query=None, endpoint='web', verbose=True,
+    def __init__(self, api_key=None, query=None, endpoint='web', verbose=True, validate_params=False,
                  params=default_user_params.DEFAULT_URL_PARAMS.copy(),
                  headers=default_user_params.DEFAULT_HEADER_PARAMS.copy()):
 
@@ -76,10 +80,10 @@ class BingSearch(object):
         self._url_comparisons = []
         self.urls_predicted = ''
         # Ok now do stuff:
-        self._init_constructor_funcs()
+        self._init_constructor_funcs(validate_params=validate_params)
 
 
-    def _init_constructor_funcs(self, rewrite=False, skip_cleaning_headers_and_params=False):
+    def _init_constructor_funcs(self, rewrite=False, skip_cleaning_headers_and_params=False, validate_params=False):
         self.base_url = static_constants.API_ENDPOINTS[self.endpoint_type]
         # encode your query to be URL-rdy
         if 'categories' not in self.endpoint_type:
@@ -106,6 +110,8 @@ class BingSearch(object):
         else:
             self.headers = self._inject_key_into_header(self.headers)
             self.urls_predicted += '\n' + self._predict_url(bypass_setting_attrs=True)
+        if validate_params:
+            QueryChecker.check_web_params(self.params, self.headers)
         if self._verbose:
             print 'The search-interface has been initialized w/ the following params:\n\nEndpoint-Type: {}\n\nQuery-URL: {}\n\nHeader-Dict: {}'.format(self.endpoint_type, self.urls_predicted, self.headers)
 
@@ -219,10 +225,12 @@ class BingSearch(object):
     ###############################################
     def _parse_json(self, json_response):
         """
-        Takes raw JSON response and packages them as instances of class WebResult.
+        Takes raw JSON response and packages them as instances of class WebResult, NewsResult, etc...
+
         :param json_response: EX -- <requests_response_object>.json()
+
         :return list of WebResult objects: parsed and prettied JSON results with easy data-access.
-                Returned as a LIST of WebResult objects with len == the # of links returned by Bing.
+                Returned as a LIST of xResult objects with len == the # of links returned by Bing.
         """
 
         ##TODO: break into parts
@@ -686,7 +694,7 @@ class static_constants():
 if __name__ == '__main__':
     key = 'ENTER_YOUR_API_KEY_HERE_ENTER_YOUR_API_KEY_HERE'
 
-    q = 'Seattle +"enginer" intitle:"career*"'
+    q = 'Seattle +"engineer" intitle:"career*"'
     searcher = BingSearch(key, q)
     # res_list is an array of WebResult objects
     res_list = searcher.search_2_packaged_json()
