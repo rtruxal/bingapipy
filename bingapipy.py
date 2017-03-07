@@ -1,4 +1,3 @@
-import inspect
 from collections import OrderedDict, Iterable
 from socket import gethostbyname, gethostname
 from time import sleep
